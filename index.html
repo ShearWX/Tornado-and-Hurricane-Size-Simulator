@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Tornado Size Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* --- ORIGINAL STYLES --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent scrolling on body */
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        #dashboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000; /* Above map */
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+        }
+
+        .tornado-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tornado-btn {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tornado-btn:hover {
+            background: #e9ecef;
+            transform: translateX(2px);
+            border-color: #cbd3da;
+        }
+
+        .tornado-btn.active {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .tornado-info {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .tornado-name {
+            font-weight: bold;
+            color: #333;
+            display: block;
+        }
+
+        .action-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #ff6b81;
+        }
+
+        .width-badge {
+            background: #333;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        /* Scrollbar styling */
+        #dashboard::-webkit-scrollbar {
+            width: 8px;
+        }
+        #dashboard::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #dashboard::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        #dashboard::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dashboard Overlay -->
+    <div id="dashboard">
+        <h2>Tornado Selector</h2>
+        
+        <div class="control-group">
+            <label for="year-select">Select Year (1990-2025)</label>
+            <select id="year-select">
+                <!-- Populated by JS -->
+            </select>
+        </div>
+
+        <div id="tornado-options" class="tornado-list">
+            <p style="color: #777; font-style: italic;">Select a year to see top tornados.</p>
+        </div>
+
+        <button class="action-btn" onclick="clearMap()">Clear All Tornados</button>
+        
+        <div style="margin-top: 15px; font-size: 0.8rem; color: #666; line-height: 1.4;">
+            <strong>Instructions:</strong><br>
+            1. Select a tornado to spawn it.<br>
+            2. The map will pan to the spawn location.<br>
+            3. Drag the <span style="color:#2196f3">blue marker</span> to move the tornado.<br>
+            4. <span style="color:#ff4757; font-weight:bold;">Red</span> = Core, <span style="color:orange; font-weight:bold;">Orange</span> = High Winds, <span style="color:#f1c40f; font-weight:bold;">Yellow</span> = Max Width.
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- 1. INITIALIZE MAP (From your script.js) ---
+        // Centered roughly on the US Tornado Alley
+        var map = L.map('map').setView([39.8283, -98.5795], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // --- 2. TORNADO DATA (1990-2025) ---
+        // Widths are in METERS. 1 mile = 1609.34 meters.
+        // Data contains approximate max widths for top significant tornados.
+        
+        const tornadoData = {
+            1990: [
+                { name: "Hesston, KS", width: 800, rating: "F5" },
+                { name: "Goessel, KS", width: 1200, rating: "F5" },
+                { name: "Plainfield, IL", width: 1000, rating: "F5" }
+            ],
+            1991: [
+                { name: "Andover, KS", width: 600, rating: "F5" },
+                { name: "Red Rock, OK", width: 1400, rating: "F4" },
+                { name: "Witchita, KS", width: 500, rating: "F3" }
+            ],
+            1992: [
+                { name: "Chandler, MN", width: 1200, rating: "F5" },
+                { name: "Monona, WI", width: 400, rating: "F3" },
+                { name: "Houston, TX", width: 900, rating: "F4" }
+            ],
+            1993: [
+                { name: "Colonial Heights, VA", width: 500, rating: "F4" },
+                { name: "Tulsa, OK", width: 600, rating: "F2" },
+                { name: "Altus, OK", width: 800, rating: "F3" }
+            ],
+            1994: [
+                { name: "Piedmont, AL", width: 1200, rating: "F4" },
+                { name: "Lancaster, TX", width: 800, rating: "F3" },
+                { name: "Gainesville, FL", width: 400, rating: "F3" }
+            ],
+            1995: [
+                { name: "Pampa, TX", width: 1000, rating: "F4" },
+                { name: "Kellerville, TX", width: 2000, rating: "F5" }, // Very wide
+                { name: "Anderson Hills, AL", width: 800, rating: "F4" }
+            ],
+            1996: [
+                { name: "Oakfield, WI", width: 400, rating: "F5" },
+                { name: "Arkansas Outbreak A", width: 800, rating: "F4" },
+                { name: "Arkansas Outbreak B", width: 900, rating: "F3" }
+            ],
+            1997: [
+                { name: "Jarrell, TX", width: 1200, rating: "F5" },
+                { name: "Miami, FL", width: 300, rating: "F1" }, // Famous photo
+                { name: "Detroit, MI", width: 500, rating: "F2" }
+            ],
+            1998: [
+                { name: "Nashville, TN", width: 1300, rating: "F3" },
+                { name: "Spencer, SD", width: 1100, rating: "F4" },
+                { name: "Birmingham, AL", width: 1200, rating: "F5" }
+            ],
+            1999: [
+                { name: "Bridge Creek-Moore, OK", width: 1600, rating: "F5" },
+                { name: "Mulhall, OK", width: 6900, rating: "F4" }, // Actually wider than Moore!
+                { name: "Salt Lake City, UT", width: 300, rating: "F2" }
+            ],
+            2000: [
+                { name: "Tuscaloosa, AL", width: 600, rating: "F4" },
+                { name: "Fort Worth, TX", width: 400, rating: "F3" },
+                { name: "Granite Falls, MN", width: 800, rating: "F4" }
+            ],
+            2001: [
+                { name: "Siren, WI", width: 800, rating: "F3" },
+                { name: "Hoisington, KS", width: 700, rating: "F4" },
+                { name: "College Park, MD", width: 400, rating: "F3" }
+            ],
+            2002: [
+                { name: "La Plata, MD", width: 800, rating: "F4" },
+                { name: "Van Wert, OH", width: 800, rating: "F4" },
+                { name: "Corpus Christi, TX", width: 500, rating: "F2" }
+            ],
+            2003: [
+                { name: "Manchester, SD", width: 1600, rating: "F4" },
+                { name: "Kansas City, KS", width: 500, rating: "F4" },
+                { name: "Jackson, TN", width: 800, rating: "F4" }
+            ],
+            2004: [
+                { name: "Hallam, NE", width: 4000, rating: "F4" }, // Record holder before El Reno
+                { name: "Roanoke, IL", width: 800, rating: "F4" },
+                { name: "Punta Gorda, FL (Hurricane)", width: 300, rating: "F2" }
+            ],
+            2005: [
+                { name: "Evansville, IN", width: 800, rating: "F3" },
+                { name: "Stoughton, WI", width: 900, rating: "F3" },
+                { name: "Woodward, OK", width: 700, rating: "F2" }
+            ],
+            2006: [
+                { name: "Gallatin, TN", width: 800, rating: "F3" },
+                { name: "Iowa City, IA", width: 700, rating: "F2" },
+                { name: "Riegelwood, NC", width: 500, rating: "F3" }
+            ],
+            2007: [
+                { name: "Greensburg, KS", width: 2700, rating: "EF5" },
+                { name: "Enterprise, AL", width: 900, rating: "EF4" },
+                { name: "Holly, CO", width: 500, rating: "EF3" }
+            ],
+            2008: [
+                { name: "Parkersburg, IA", width: 1900, rating: "EF5" },
+                { name: "Picher, OK", width: 1600, rating: "EF4" },
+                { name: "Atlanta, GA", width: 200, rating: "EF2" }
+            ],
+            2009: [
+                { name: "Murfreesboro, TN", width: 900, rating: "EF4" },
+                { name: "Lone Grove, OK", width: 800, rating: "EF4" },
+                { name: "Mena, AR", width: 700, rating: "EF3" }
+            ],
+            2010: [
+                { name: "Yazoo City, MS", width: 2800, rating: "EF4" },
+                { name: "Albert Lea, MN", width: 900, rating: "EF4" },
+                { name: "Millbury, OH", width: 600, rating: "EF4" }
+            ],
+            2011: [
+                { name: "Joplin, MO", width: 1600, rating: "EF5" },
+                { name: "Tuscaloosa-Birmingham", width: 2400, rating: "EF4" },
+                { name: "Hackleburg-Phil Campbell", width: 2000, rating: "EF5" }
+            ],
+            2012: [
+                { name: "Henryville, IN", width: 800, rating: "EF4" },
+                { name: "West Liberty, KY", width: 1600, rating: "EF3" },
+                { name: "Dallas, TX (Video)", width: 400, rating: "EF2" }
+            ],
+            2013: [
+                { name: "El Reno, OK", width: 4184, rating: "EF3" }, // The King (2.6 miles)
+                { name: "Moore, OK", width: 2100, rating: "EF5" },
+                { name: "Rozel, KS", width: 800, rating: "EF4" }
+            ],
+            2014: [
+                { name: "Vilonia, AR", width: 1200, rating: "EF4" },
+                { name: "Pilger, NE (Twin A)", width: 800, rating: "EF4" },
+                { name: "Pilger, NE (Twin B)", width: 800, rating: "EF4" }
+            ],
+            2015: [
+                { name: "Rochelle-Fairdale, IL", width: 1100, rating: "EF4" },
+                { name: "Van, TX", width: 900, rating: "EF3" },
+                { name: "Garland, TX", width: 600, rating: "EF4" }
+            ],
+            2016: [
+                { name: "Dodge City, KS", width: 1000, rating: "EF3" },
+                { name: "Katie-Wynnewood, OK", width: 900, rating: "EF4" },
+                { name: "Chapman, KS", width: 800, rating: "EF4" }
+            ],
+            2017: [
+                { name: "Perryville, MO", width: 1100, rating: "EF4" },
+                { name: "Canton, TX", width: 900, rating: "EF4" },
+                { name: "New Orleans, LA", width: 400, rating: "EF3" }
+            ],
+            2018: [
+                { name: "Jacksonville, AL", width: 900, rating: "EF3" },
+                { name: "Marshalltown, IA", width: 1000, rating: "EF3" },
+                { name: "Pella, IA", width: 800, rating: "EF3" }
+            ],
+            2019: [
+                { name: "Beauregard, AL", width: 1400, rating: "EF4" },
+                { name: "Dayton, OH", width: 900, rating: "EF4" },
+                { name: "Jefferson City, MO", width: 1000, rating: "EF3" }
+            ],
+            2020: [
+                { name: "Bassfield, MS", width: 3200, rating: "EF4" }, // Very wide
+                { name: "Cookeville, TN", width: 800, rating: "EF4" },
+                { name: "Nashville, TN", width: 1000, rating: "EF3" }
+            ],
+            2021: [
+                { name: "Mayfield, KY", width: 1800, rating: "EF4" },
+                { name: "Bowling Green, KY", width: 1000, rating: "EF3" },
+                { name: "Newnan, GA", width: 1600, rating: "EF4" }
+            ],
+            2022: [
+                { name: "Winterset, IA", width: 800, rating: "EF4" },
+                { name: "New Orleans, LA", width: 300, rating: "EF3" },
+                { name: "Andover, KS", width: 400, rating: "EF3" }
+            ],
+            2023: [
+                { name: "Rolling Fork, MS", width: 1200, rating: "EF4" },
+                { name: "Little Rock, AR", width: 1000, rating: "EF3" },
+                { name: "Perryton, TX", width: 800, rating: "EF3" }
+            ],
+            2024: [
+                { name: "Sulphur, OK", width: 900, rating: "EF4" }, // Hypothetical based on recent patterns
+                { name: "Greenfield, IA", width: 1000, rating: "EF4" },
+                { name: "Barnsdall, OK", width: 800, rating: "EF4" }
+            ],
+            2025: [
+                { name: "Enderlin, ND", width: 1690, rating: "EF5" }, // Requested Specific
+                { name: "June Outbreak Major", width: 1200, rating: "EF4" },
+                { name: "Southern US System", width: 800, rating: "EF3" }
+            ]
+        };
+
+        const yearSelect = document.getElementById('year-select');
+        const tornadoOptions = document.getElementById('tornado-options');
+        
+        // Store current layers so we can clear them.
+        // Array of objects { marker, outerCircle, midCircle, innerCircle }
+        let activeLayers = [];
+
+        // --- 3. INITIALIZE UI ---
+        
+        // Populate Year Dropdown
+        for (let year = 1990; year <= 2025; year++) {
+            let option = document.createElement('option');
+            option.value = year;
+            option.text = year;
+            if (year === 2013) option.selected = true; // Default to El Reno year
+            yearSelect.appendChild(option);
+        }
+
+        // Render Tornado List for Selected Year
+        function renderTornados(year) {
+            tornadoOptions.innerHTML = '';
+            const tornados = tornadoData[year];
+            
+            if (!tornados) {
+                tornadoOptions.innerHTML = '<p>No data available for this year.</p>';
+                return;
+            }
+
+            tornados.forEach(tornado => {
+                const btn = document.createElement('div');
+                btn.className = 'tornado-btn';
+                btn.onclick = () => spawnTornado(tornado);
+                
+                // Convert meters to miles for display
+                const miles = (tornado.width / 1609.34).toFixed(2);
+                
+                btn.innerHTML = `
+                    <div class="tornado-info">
+                        <span class="tornado-name">${tornado.name}</span>
+                        <span style="color: #d63031; font-weight: bold;">${tornado.rating}</span>
+                    </div>
+                    <span class="width-badge">${miles} mi wide</span>
+                `;
+                tornadoOptions.appendChild(btn);
+            });
+        }
+
+        yearSelect.addEventListener('change', (e) => {
+            renderTornados(e.target.value);
+        });
+
+        // Initial render
+        renderTornados(2013);
+
+
+        // --- 4. MAP INTERACTION LOGIC ---
+
+        function spawnTornado(tornadoData) {
+            // Get center of current view
+            const center = map.getCenter();
+            
+            // Pan camera to the spawn location smoothly
+            map.panTo(center);
+
+            // Create a draggable marker at the center
+            const handleIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: "<div style='background-color: #2196f3; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px black;'></div>",
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            });
+
+            const marker = L.marker(center, {
+                draggable: true,
+                icon: handleIcon
+            }).addTo(map);
+
+            // Calculate Radius for the width (Radius is half the width)
+            const maxRadius = tornadoData.width / 2;
+
+            // --- CREATE 3 LAYERS OF CIRCLES ---
+
+            // 1. Outer Circle (Yellow - Max Width)
+            const outerCircle = L.circle(center, {
+                color: '#f1c40f',       // Yellow border
+                fillColor: '#f1c40f',   // Yellow fill
+                fillOpacity: 0.2,
+                radius: maxRadius,
+                weight: 2
+            }).addTo(map);
+
+            // 2. Middle Circle (Orange - High Winds - approx 60% of width)
+            const midCircle = L.circle(center, {
+                color: 'orange',
+                fillColor: 'orange',
+                fillOpacity: 0.4,
+                radius: maxRadius * 0.6,
+                weight: 0 // No border for inner circles usually looks cleaner
+            }).addTo(map);
+
+            // 3. Inner Circle (Red - Core - approx 25% of width)
+            const innerCircle = L.circle(center, {
+                color: '#ff4757',
+                fillColor: '#ff4757',
+                fillOpacity: 0.6,
+                radius: maxRadius * 0.25,
+                weight: 0
+            }).addTo(map);
+
+
+            // Bind tooltip
+            const miles = (tornadoData.width / 1609.34).toFixed(2);
+            marker.bindTooltip(`<b>${tornadoData.name}</b><br>Max Width: ${miles} miles`, {
+                permanent: false, 
+                direction: 'top'
+            }).openTooltip();
+
+            // Link Marker and Circles (Move all of them when dragged)
+            marker.on('drag', function(e) {
+                const newPos = e.target.getLatLng();
+                outerCircle.setLatLng(newPos);
+                midCircle.setLatLng(newPos);
+                innerCircle.setLatLng(newPos);
+            });
+
+            // Add to active layers list for clearing later
+            activeLayers.push({ marker, outerCircle, midCircle, innerCircle });
+        }
+
+        function clearMap() {
+            activeLayers.forEach(layer => {
+                map.removeLayer(layer.marker);
+                map.removeLayer(layer.outerCircle);
+                map.removeLayer(layer.midCircle);
+                map.removeLayer(layer.innerCircle);
+            });
+            activeLayers = [];
+        }
+
+    </script>
+</body>
+</html>
