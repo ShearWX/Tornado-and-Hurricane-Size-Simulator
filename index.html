@@ -10,129 +10,33 @@
 <body>
     <div id="container">
         <h1>Tornado Track Generator</h1>
+        
+        <div id="map-selector" style="padding: 20px; background: #eee; border-radius: 8px; margin-bottom: 20px;">
+            <h3>Step 1: Load a Map</h3>
+            <input id="map-upload" type="file" accept="image/*">
+            <p>OR</p>
+            <button id="osm-btn">Use OpenStreetMap (NYC)</button>
+        </div>
+
         <div id="simulation-container">
             <div id="canvas-container"></div>
             <div id="info-panel">
                 <h2>Tornado Status</h2>
                 <p>Time: <span id="clock-time">--:--</span></p>
-                
-                <div id="tornado-1-stats">
-                    <h3>Tornado 1</h3>
-                    <p>Wind Speed: <span id="wind-speed-1">--</span> mph</p>
-                    <p>Category: <span id="ef-scale-1">--</span></p>
-                    <p>Max Wind: <span id="max-wind-speed-1">--</span> mph</p>
-                    <p>Max Width: <span id="max-width-1">--</span> mi</p>
-                </div>
-
-                <div id="tornado-2-stats" style="display: none;">
-                     <hr>
-                    <h3>Tornado 2</h3>
-                    <p>Wind Speed: <span id="wind-speed-2">--</span> mph</p>
-                    <p>Category: <span id="ef-scale-2">--</span></p>
-                    <p>Max Wind: <span id="max-wind-speed-2">--</span> mph</p>
-                    <p>Max Width: <span id="max-width-2">--</span> mi</p>
-                </div>
-                
+                <div id="tornado-stats-container"></div>
                 <hr>
                 <p>Total Casualties: <span id="total-casualties">0</span></p>
-                <p>Cities in path:</p>
-                <ul id="cities-hit">
-                    <li>None</li>
-                </ul>
             </div>
         </div>
+
         <div id="controls">
-            <button id="new-sim-btn">New Simulation</button>
-            <button id="new-map-btn">New Map</button>
-            <div id="slider-control">
-                <label for="path-wobble">Path Wobble:</label>
-                <input type="range" id="path-wobble" min="0.1" max="2.5" step="0.1" value="0.7">
-            </div>
-
-            <!-- Manual tornado creation UI -->
-            <div id="manual-controls" style="display:flex;flex-direction:column;gap:8px;margin-left:12px;align-items:flex-start;">
-                <label style="font-size:0.9em;">
-                    <input type="checkbox" id="manual-mode"> Manual Tornado Mode (click canvas to place)
+            <div id="manual-controls">
+                <label>
+                    <input type="checkbox" id="manual-mode" checked> Manual Mode (Click map to place)
                 </label>
-
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <label for="custom-wind" style="font-size:0.9em;">Wind (mph):</label>
-                    <input id="custom-wind" type="number" min="40" max="1000" value="120" style="width:90px;">
-                </div>
-
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <label for="custom-width" style="font-size:0.9em;">Width (mi):</label>
-                    <input id="custom-width" type="number" min="0.1" max="2.7" value="0.8" step="0.1" style="width:90px;">
-                </div>
-
-                <div style="display:flex;gap:8px;">
-                    <button id="add-tornado-btn">Add Tornado (center)</button>
-                    <button id="clear-manual-btn">Clear Manual Tornadoes</button>
-                </div>
-
-                <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-                    <label style="font-size:0.9em;">
-                        <input type="checkbox" id="path-edit-mode"> Edit Path Mode (click to add waypoints)
-                    </label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <button id="clear-path-btn">Clear Path</button>
-                        <button id="finish-path-btn">Finish Path</button>
-                    </div>
-                    <small style="color:#666;">When Edit Path Mode is active, clicks add waypoints that tornadoes can follow.</small>
-                </div>
-
-                <hr style="width:100%;margin:8px 0;">
-
-                <!-- Map editor controls -->
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <label style="font-size:0.9em;">
-                        <input type="checkbox" id="map-editor-mode"> Map Editor Mode (paint / add cities / draw roads)
-                    </label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <label style="font-size:0.9em;">Terrain:</label>
-                        <select id="terrain-type" style="width:120px;">
-                            <option value="lake">Lake (blue)</option>
-                            <option value="grass">Grass (green)</option>
-                            <option value="mountain">Mountain (grey)</option>
-                        </select>
-                        <button id="paint-terrain-btn">Paint</button>
-                    </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <button id="add-city-mode-btn">Add City Mode</button>
-                        <button id="draw-road-mode-btn">Draw Road Mode</button>
-                        <button id="clear-editor-btn">Clear Editor Overlay</button>
-                    </div>
-
-                    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                        <label for="city-name-input" style="font-size:0.9em;">City Name:</label>
-                        <input id="city-name-input" type="text" placeholder="Optional custom name" style="width:140px;">
-                    </div>
-
-                    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                        <label for="map-upload" style="font-size:0.9em;">Upload Map:</label>
-                        <input id="map-upload" type="file" accept="image/*">
-                    </div>
-
-                    <small style="color:#666;">Use Map Editor Mode + the above tools: click map to paint or add cities; draw roads by selecting two cities. Use City Name to give a custom name when adding a city; Upload Map will replace the procedural background.</small>
-                </div>
-
-                <hr style="width:100%;margin:8px 0;">
-
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                    <label for="max-ef" style="font-size:0.9em;">Max EF Cap:</label>
-                    <select id="max-ef" style="width:150px;">
-                        <option value="6">EF6 (no cap)</option>
-                        <option value="5">EF5</option>
-                        <option value="4">EF4</option>
-                        <option value="3">EF3</option>
-                        <option value="2">EF2</option>
-                        <option value="1">EF1</option>
-                        <option value="0">EF0</option>
-                    </select>
-                    <small style="color:#666;">This limits the maximum EF rating tornadoes can reach when they spawn.</small>
-                </div>
-
-                <small style="color:#666;">Tip: enable Manual Tornado Mode and click the map to place tornadoes where you want.</small>
+                <input id="custom-wind" type="number" value="120" style="width:60px;"> mph
+                <input id="custom-width" type="number" value="0.8" step="0.1" style="width:50px;"> mi
+                <button id="clear-manual-btn">Clear All</button>
             </div>
         </div>
     </div>
