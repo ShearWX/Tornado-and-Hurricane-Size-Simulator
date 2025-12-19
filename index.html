@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Storm Map</title>
+    <title>Storm Path Maker</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* --- ORIGINAL STYLES --- */
         body, html {
             margin: 0;
             padding: 0;
@@ -28,185 +27,191 @@
             top: 20px;
             left: 20px;
             width: 340px;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.98);
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
             z-index: 1000;
             max-height: 90vh;
             overflow-y: auto;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(0,0,0,0.1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.3);
         }
 
         h2 {
-            margin-top: 0;
-            color: #333;
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 1.4rem;
+            text-align: center;
         }
 
-        /* TOGGLE SWITCH */
         .mode-switch-container {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            background: #eee;
+            background: #f1f2f6;
             padding: 4px;
-            border-radius: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
 
         .mode-btn {
             flex: 1;
             border: none;
-            padding: 8px 15px;
-            border-radius: 16px;
+            padding: 10px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: all 0.3s;
+            font-weight: 600;
+            transition: all 0.2s;
             background: transparent;
-            color: #777;
+            color: #7f8c8d;
         }
 
         .mode-btn.active {
             background: white;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .mode-btn.tornado.active { color: #ff4757; }
-        .mode-btn.hurricane.active { color: #f1c40f; }
+        .mode-btn.tornado.active { color: #e74c3c; }
 
-        .control-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 1rem;
-            background: white;
-            cursor: pointer;
-        }
-
-        .list-container {
+        .adder-form {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-            max-height: 300px;
-            overflow-y: auto;
+            gap: 12px;
         }
 
-        .storm-btn {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .storm-btn:hover {
-            background: #e9ecef;
-            transform: translateX(2px);
-            border-color: #cbd3da;
-        }
-
-        .storm-info {
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .storm-name {
-            font-weight: bold;
-            color: #333;
+        .control-group label {
             display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #34495e;
         }
 
-        .rating-badge {
-            font-weight: bold;
-            margin-left: 5px;
-        }
-
-        /* TORNADO THEME */
-        .tornado-theme .rating-badge { color: #d63031; }
-        .tornado-theme .width-badge { background: #333; color: white; }
-
-        /* HURRICANE THEME */
-        .hurricane-theme .rating-badge { color: #f39c12; }
-        .hurricane-theme .width-badge { background: #2980b9; color: white; }
-
-        .width-badge {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            white-space: nowrap;
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dcdde1;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            box-sizing: border-box;
         }
 
         .action-btn {
-            background: #ff4757;
-            color: white;
             border: none;
-            padding: 10px;
-            width: 100%;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
-            transition: background 0.2s;
+            transition: transform 0.1s, opacity 0.2s;
+            width: 100%;
+            margin-top: 5px;
         }
-        .action-btn:hover { background: #ff6b81; }
 
-        /* Scrollbar styling */
-        #dashboard::-webkit-scrollbar { width: 8px; }
-        #dashboard::-webkit-scrollbar-track { background: #f1f1f1; }
-        #dashboard::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        .action-btn:active { transform: scale(0.98); }
+
+        .btn-draw { background: #3498db; color: white; }
+        .btn-clear { background: #95a5a6; color: white; margin-top: 20px; }
+
+        .drawing-indicator {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 1px solid #ffeeba;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .storm-list {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .storm-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .storm-card b { display: block; color: #2c3e50; }
+        .storm-card small { color: #7f8c8d; }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 5px;
+        }
+
+        .btn-play { background: #2ecc71; color: white; }
+        .btn-del { background: #e74c3c; color: white; }
+
+        #active-count {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div id="dashboard">
-        <h2>Storm Selector</h2>
+        <h2>Storm Path Maker</h2>
         
         <div class="mode-switch-container">
-            <button class="mode-btn tornado active" onclick="setMode('tornado')">Tornados</button>
-            <button class="mode-btn hurricane" onclick="setMode('hurricane')">Hurricanes</button>
+            <button class="mode-btn tornado active" onclick="setMode('tornado')">Tornado</button>
         </div>
 
-        <div class="control-group">
-            <label id="year-label" for="year-select">Select Year (1990-2025)</label>
-            <select id="year-select">
-                <!-- Populated by JS -->
-            </select>
+        <div class="adder-form">
+            <div class="control-group">
+                <label>Storm Name</label>
+                <input type="text" id="add-name" placeholder="e.g. Supercell Alpha">
+            </div>
+            <div class="control-group">
+                <label id="label-size">Max Width (Miles)</label>
+                <input type="number" step="0.1" id="add-size" value="1.0">
+            </div>
+            <div class="control-group">
+                <label>Intensity Rating</label>
+                <select id="add-rating"></select>
+            </div>
+            <div class="control-group">
+                <label>Custom Speed (mph)</label>
+                <input type="number" id="add-speed" value="45" min="5" max="200">
+                <small style="color: #7f8c8d; font-size: 0.7rem;">Slowing down 5mph at start/end.</small>
+            </div>
+            
+            <button class="action-btn btn-draw" id="draw-path-btn" onclick="startDrawingPath()">Start Drawing Path</button>
+            
+            <div id="draw-info" class="drawing-indicator">
+                <b>DRAWING MODE</b><br>
+                1. Click map for points<br>
+                2. Double-click to save
+            </div>
         </div>
 
-        <div id="storm-list" class="list-container tornado-theme">
-            <!-- Populated by JS -->
-        </div>
+        <div id="active-count">0 storms created</div>
+        <div id="storm-list" class="storm-list"></div>
 
-        <button class="action-btn" onclick="clearMap()">Clear Map</button>
-        
-        <div id="instructions" style="margin-top: 15px; font-size: 0.8rem; color: #666; line-height: 1.4;">
-            <!-- Updated by JS -->
-        </div>
+        <button class="action-btn btn-clear" onclick="clearAll()">Reset Map</button>
     </div>
 
     <div id="map"></div>
@@ -214,472 +219,263 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // --- 1. INITIALIZE MAP ---
-        var map = L.map('map').setView([39.8283, -98.5795], 5);
+        const MI_TO_M = 1609.34;
+        const map = L.map('map', { doubleClickZoom: false }).setView([38, -97], 5);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // --- 2. DATASETS ---
-        
-        // TORNADOS (1990-2025) - Width in Meters
-        const tornadoData = {
-            1990: [{ name: "Hesston, KS", width: 800, rating: "F5" }, { name: "Goessel, KS", width: 1200, rating: "F5" }, { name: "Plainfield, IL", width: 1000, rating: "F5" }],
-            1991: [{ name: "Andover, KS", width: 600, rating: "F5" }, { name: "Red Rock, OK", width: 1400, rating: "F4" }, { name: "Witchita, KS", width: 500, rating: "F3" }],
-            1992: [{ name: "Chandler, MN", width: 1200, rating: "F5" }, { name: "Monona, WI", width: 400, rating: "F3" }, { name: "Houston, TX", width: 900, rating: "F4" }],
-            1993: [{ name: "Colonial Heights, VA", width: 500, rating: "F4" }, { name: "Tulsa, OK", width: 600, rating: "F2" }, { name: "Altus, OK", width: 800, rating: "F3" }],
-            1994: [{ name: "Piedmont, AL", width: 1200, rating: "F4" }, { name: "Lancaster, TX", width: 800, rating: "F3" }, { name: "Gainesville, FL", width: 400, rating: "F3" }],
-            1995: [{ name: "Pampa, TX", width: 1000, rating: "F4" }, { name: "Kellerville, TX", width: 2000, rating: "F5" }, { name: "Anderson Hills, AL", width: 800, rating: "F4" }],
-            1996: [{ name: "Oakfield, WI", width: 400, rating: "F5" }, { name: "Arkansas Outbreak A", width: 800, rating: "F4" }, { name: "Arkansas Outbreak B", width: 900, rating: "F3" }],
-            1997: [{ name: "Jarrell, TX", width: 1200, rating: "F5" }, { name: "Miami, FL", width: 300, rating: "F1" }, { name: "Detroit, MI", width: 500, rating: "F2" }],
-            1998: [{ name: "Nashville, TN", width: 1300, rating: "F3" }, { name: "Spencer, SD", width: 1100, rating: "F4" }, { name: "Birmingham, AL", width: 1200, rating: "F5" }],
-            1999: [{ name: "Bridge Creek-Moore, OK", width: 1600, rating: "F5" }, { name: "Mulhall, OK", width: 6900, rating: "F4" }, { name: "Salt Lake City, UT", width: 300, rating: "F2" }],
-            2000: [{ name: "Tuscaloosa, AL", width: 600, rating: "F4" }, { name: "Fort Worth, TX", width: 400, rating: "F3" }, { name: "Granite Falls, MN", width: 800, rating: "F4" }],
-            2001: [{ name: "Siren, WI", width: 800, rating: "F3" }, { name: "Hoisington, KS", width: 700, rating: "F4" }, { name: "College Park, MD", width: 400, rating: "F3" }],
-            2002: [{ name: "La Plata, MD", width: 800, rating: "F4" }, { name: "Van Wert, OH", width: 800, rating: "F4" }, { name: "Corpus Christi, TX", width: 500, rating: "F2" }],
-            2003: [{ name: "Manchester, SD", width: 1600, rating: "F4" }, { name: "Kansas City, KS", width: 500, rating: "F4" }, { name: "Jackson, TN", width: 800, rating: "F4" }],
-            2004: [{ name: "Hallam, NE", width: 4000, rating: "F4" }, { name: "Roanoke, IL", width: 800, rating: "F4" }, { name: "Punta Gorda, FL (Hurricane)", width: 300, rating: "F2" }],
-            2005: [{ name: "Evansville, IN", width: 800, rating: "F3" }, { name: "Stoughton, WI", width: 900, rating: "F3" }, { name: "Woodward, OK", width: 700, rating: "F2" }],
-            2006: [{ name: "Gallatin, TN", width: 800, rating: "F3" }, { name: "Iowa City, IA", width: 700, rating: "F2" }, { name: "Riegelwood, NC", width: 500, rating: "F3" }],
-            2007: [{ name: "Greensburg, KS", width: 2700, rating: "EF5" }, { name: "Enterprise, AL", width: 900, rating: "EF4" }, { name: "Holly, CO", width: 500, rating: "EF3" }],
-            2008: [{ name: "Parkersburg, IA", width: 1900, rating: "EF5" }, { name: "Picher, OK", width: 1600, rating: "EF4" }, { name: "Atlanta, GA", width: 200, rating: "EF2" }],
-            2009: [{ name: "Murfreesboro, TN", width: 900, rating: "EF4" }, { name: "Lone Grove, OK", width: 800, rating: "EF4" }, { name: "Mena, AR", width: 700, rating: "EF3" }],
-            2010: [{ name: "Yazoo City, MS", width: 2800, rating: "EF4" }, { name: "Albert Lea, MN", width: 900, rating: "EF4" }, { name: "Millbury, OH", width: 600, rating: "EF4" }],
-            2011: [{ name: "Joplin, MO", width: 1600, rating: "EF5" }, { name: "Tuscaloosa-Birmingham", width: 2400, rating: "EF4" }, { name: "Hackleburg-Phil Campbell", width: 2000, rating: "EF5" }],
-            2012: [{ name: "Henryville, IN", width: 800, rating: "EF4" }, { name: "West Liberty, KY", width: 1600, rating: "EF3" }, { name: "Dallas, TX", width: 400, rating: "EF2" }],
-            2013: [{ name: "El Reno, OK", width: 4184, rating: "EF3" }, { name: "Moore, OK", width: 2100, rating: "EF5" }, { name: "Rozel, KS", width: 800, rating: "EF4" }],
-            2014: [{ name: "Vilonia, AR", width: 1200, rating: "EF4" }, { name: "Pilger, NE (Twin A)", width: 800, rating: "EF4" }, { name: "Pilger, NE (Twin B)", width: 800, rating: "EF4" }],
-            2015: [{ name: "Rochelle-Fairdale, IL", width: 1100, rating: "EF4" }, { name: "Van, TX", width: 900, rating: "EF3" }, { name: "Garland, TX", width: 600, rating: "EF4" }],
-            2016: [{ name: "Dodge City, KS", width: 1000, rating: "EF3" }, { name: "Katie-Wynnewood, OK", width: 900, rating: "EF4" }, { name: "Chapman, KS", width: 800, rating: "EF4" }],
-            2017: [{ name: "Perryville, MO", width: 1100, rating: "EF4" }, { name: "Canton, TX", width: 900, rating: "EF4" }, { name: "New Orleans, LA", width: 400, rating: "EF3" }],
-            2018: [{ name: "Jacksonville, AL", width: 900, rating: "EF3" }, { name: "Marshalltown, IA", width: 1000, rating: "EF3" }, { name: "Pella, IA", width: 800, rating: "EF3" }],
-            2019: [{ name: "Beauregard, AL", width: 1400, rating: "EF4" }, { name: "Dayton, OH", width: 900, rating: "EF4" }, { name: "Jefferson City, MO", width: 1000, rating: "EF3" }],
-            2020: [{ name: "Bassfield, MS", width: 3200, rating: "EF4" }, { name: "Cookeville, TN", width: 800, rating: "EF4" }, { name: "Nashville, TN", width: 1000, rating: "EF3" }],
-            2021: [{ name: "Mayfield, KY", width: 1800, rating: "EF4" }, { name: "Bowling Green, KY", width: 1000, rating: "EF3" }, { name: "Newnan, GA", width: 1600, rating: "EF4" }],
-            2022: [{ name: "Winterset, IA", width: 800, rating: "EF4" }, { name: "New Orleans, LA", width: 300, rating: "EF3" }, { name: "Andover, KS", width: 400, rating: "EF3" }],
-            2023: [{ name: "Rolling Fork, MS", width: 1200, rating: "EF4" }, { name: "Little Rock, AR", width: 1000, rating: "EF3" }, { name: "Perryton, TX", width: 800, rating: "EF3" }],
-            2024: [{ name: "Sulphur, OK", width: 900, rating: "EF4" }, { name: "Greenfield, IA", width: 1000, rating: "EF4" }, { name: "Barnsdall, OK", width: 800, rating: "EF4" }],
-            2025: [{ name: "Enderlin, ND", width: 1690, rating: "EF5" }, { name: "June Outbreak Major", width: 1200, rating: "EF4" }, { name: "Southern US System", width: 800, rating: "EF3" }]
-        };
-
-        // HURRICANES (1985-2025) 
-        // Metric: r34 (Tropical Storm Radius in meters), r64 (Hurricane Wind Radius in meters), eye (Eye Diameter in meters)
-        // 1 mile = 1609.34 meters
-        
-        const hurricaneData = {
-            1985: [
-                {name: "Elena", r34: 320000, r64: 80000, eye: 30000, rating: "Cat 3"}, 
-                {name: "Gloria", r34: 500000, r64: 95000, eye: 40000, rating: "Cat 4"}, 
-                {name: "Kate", r34: 300000, r64: 70000, eye: 30000, rating: "Cat 3"}
-            ],
-            1986: [
-                {name: "Charley", r34: 250000, r64: 40000, eye: 25000, rating: "Cat 1"},
-                {name: "Earl", r34: 350000, r64: 60000, eye: 35000, rating: "Cat 2"},
-                {name: "Frances", r34: 280000, r64: 45000, eye: 30000, rating: "Cat 1"}
-            ],
-            1987: [
-                {name: "Floyd", r34: 200000, r64: 35000, eye: 20000, rating: "Cat 1"},
-                {name: "Emily", r34: 300000, r64: 50000, eye: 40000, rating: "Cat 3"},
-                {name: "Arlene", r34: 180000, r64: 0, eye: 0, rating: "TS"}
-            ],
-            1988: [
-                // Gilbert: 550mi TS diameter (r34 ~440km), 10mi eye (16km) at peak
-                {name: "Gilbert", r34: 442000, r64: 100000, eye: 16000, rating: "Cat 5"}, 
-                {name: "Helene", r34: 400000, r64: 90000, eye: 45000, rating: "Cat 4"},
-                {name: "Joan", r34: 350000, r64: 80000, eye: 30000, rating: "Cat 4"}
-            ],
-            1989: [
-                {name: "Hugo", r34: 450000, r64: 90000, eye: 40000, rating: "Cat 5"},
-                {name: "Gabrielle", r34: 500000, r64: 100000, eye: 55000, rating: "Cat 4"},
-                {name: "Dean", r34: 300000, r64: 60000, eye: 30000, rating: "Cat 2"}
-            ],
-            1990: [
-                {name: "Isidore", r34: 350000, r64: 70000, eye: 35000, rating: "Cat 2"},
-                {name: "Gustav", r34: 320000, r64: 65000, eye: 30000, rating: "Cat 3"},
-                {name: "Nana", r34: 200000, r64: 40000, eye: 20000, rating: "Cat 1"}
-            ],
-            1991: [
-                {name: "Bob", r34: 350000, r64: 80000, eye: 40000, rating: "Cat 3"},
-                {name: "Grace", r34: 500000, r64: 60000, eye: 50000, rating: "Cat 2"},
-                {name: "Claudette", r34: 300000, r64: 65000, eye: 35000, rating: "Cat 3"}
-            ],
-            1992: [
-                {name: "Andrew", r34: 240000, r64: 50000, eye: 20000, rating: "Cat 5"}, // Compact
-                {name: "Iniki", r34: 300000, r64: 65000, eye: 30000, rating: "Cat 4"},
-                {name: "Frances", r34: 280000, r64: 45000, eye: 25000, rating: "Cat 1"}
-            ],
-            1993: [
-                {name: "Emily", r34: 320000, r64: 70000, eye: 45000, rating: "Cat 3"},
-                {name: "Gert", r34: 280000, r64: 50000, eye: 30000, rating: "Cat 2"},
-                {name: "Harvey", r34: 250000, r64: 40000, eye: 25000, rating: "Cat 1"}
-            ],
-            1994: [
-                {name: "Gordon", r34: 300000, r64: 45000, eye: 30000, rating: "Cat 1"},
-                {name: "Florence", r34: 400000, r64: 85000, eye: 50000, rating: "Cat 2"},
-                {name: "Chris", r34: 200000, r64: 35000, eye: 20000, rating: "Cat 1"}
-            ],
-            1995: [
-                {name: "Opal", r34: 450000, r64: 95000, eye: 40000, rating: "Cat 4"},
-                {name: "Marilyn", r34: 350000, r64: 75000, eye: 35000, rating: "Cat 3"},
-                {name: "Luis", r34: 500000, r64: 100000, eye: 55000, rating: "Cat 4"}
-            ],
-            1996: [
-                {name: "Fran", r34: 420000, r64: 90000, eye: 45000, rating: "Cat 3"},
-                {name: "Bertha", r34: 450000, r64: 85000, eye: 50000, rating: "Cat 3"},
-                {name: "Hortense", r34: 350000, r64: 80000, eye: 35000, rating: "Cat 4"}
-            ],
-            1997: [
-                {name: "Danny", r34: 150000, r64: 30000, eye: 15000, rating: "Cat 1"},
-                {name: "Erika", r34: 400000, r64: 85000, eye: 40000, rating: "Cat 3"},
-                {name: "Nora", r34: 350000, r64: 75000, eye: 35000, rating: "Cat 4"}
-            ],
-            1998: [
-                {name: "Mitch", r34: 400000, r64: 85000, eye: 25000, rating: "Cat 5"},
-                {name: "Georges", r34: 380000, r64: 80000, eye: 35000, rating: "Cat 4"},
-                {name: "Bonnie", r34: 350000, r64: 70000, eye: 35000, rating: "Cat 3"}
-            ],
-            1999: [
-                // Floyd: Massive storm
-                {name: "Floyd", r34: 580000, r64: 125000, eye: 50000, rating: "Cat 4"},
-                {name: "Lenny", r34: 300000, r64: 70000, eye: 30000, rating: "Cat 4"},
-                {name: "Dennis", r34: 350000, r64: 65000, eye: 40000, rating: "Cat 2"}
-            ],
-            2000: [
-                {name: "Keith", r34: 280000, r64: 60000, eye: 25000, rating: "Cat 4"},
-                {name: "Alberto", r34: 450000, r64: 90000, eye: 45000, rating: "Cat 3"},
-                {name: "Isaac", r34: 350000, r64: 75000, eye: 35000, rating: "Cat 4"}
-            ],
-            2001: [
-                {name: "Michelle", r34: 400000, r64: 85000, eye: 40000, rating: "Cat 4"},
-                {name: "Iris", r34: 200000, r64: 45000, eye: 20000, rating: "Cat 4"}, // Very small
-                {name: "Gabrielle", r34: 300000, r64: 50000, eye: 30000, rating: "Cat 1"}
-            ],
-            2002: [
-                {name: "Lili", r34: 320000, r64: 70000, eye: 30000, rating: "Cat 4"},
-                {name: "Isidore", r34: 450000, r64: 90000, eye: 45000, rating: "Cat 3"},
-                {name: "Kyle", r34: 250000, r64: 40000, eye: 25000, rating: "Cat 1"}
-            ],
-            2003: [
-                {name: "Isabel", r34: 500000, r64: 115000, eye: 55000, rating: "Cat 5"},
-                {name: "Fabian", r34: 420000, r64: 95000, eye: 40000, rating: "Cat 4"},
-                {name: "Kate", r34: 380000, r64: 85000, eye: 40000, rating: "Cat 3"}
-            ],
-            2004: [
-                {name: "Ivan", r34: 550000, r64: 120000, eye: 50000, rating: "Cat 5"},
-                {name: "Frances", r34: 500000, r64: 100000, eye: 45000, rating: "Cat 4"},
-                {name: "Charley", r34: 150000, r64: 35000, eye: 15000, rating: "Cat 4"} // Tiny
-            ],
-            2005: [
-                // Katrina: Huge wind field. R64 ~105 miles (170km), R34 ~200 miles (320km)
-                // Wilma: Tiny eye (2nm / 3.7km)
-                {name: "Katrina", r34: 370000, r64: 160000, eye: 55000, rating: "Cat 5"},
-                {name: "Wilma", r34: 280000, r64: 75000, eye: 4000, rating: "Cat 5"}, 
-                {name: "Rita", r34: 400000, r64: 95000, eye: 35000, rating: "Cat 5"}
-            ],
-            2006: [
-                {name: "Ernesto", r34: 300000, r64: 50000, eye: 30000, rating: "Cat 1"},
-                {name: "Florence", r34: 400000, r64: 75000, eye: 40000, rating: "Cat 1"},
-                {name: "Helene", r34: 350000, r64: 80000, eye: 35000, rating: "Cat 3"}
-            ],
-            2007: [
-                {name: "Dean", r34: 420000, r64: 90000, eye: 35000, rating: "Cat 5"},
-                {name: "Felix", r34: 300000, r64: 65000, eye: 25000, rating: "Cat 5"},
-                {name: "Noel", r34: 350000, r64: 50000, eye: 35000, rating: "Cat 1"}
-            ],
-            2008: [
-                // Ike: Massive wind field
-                {name: "Ike", r34: 450000, r64: 115000, eye: 45000, rating: "Cat 4"},
-                {name: "Gustav", r34: 350000, r64: 75000, eye: 35000, rating: "Cat 4"},
-                {name: "Hanna", r34: 300000, r64: 50000, eye: 30000, rating: "Cat 1"}
-            ],
-            2009: [
-                {name: "Bill", r34: 480000, r64: 100000, eye: 50000, rating: "Cat 4"},
-                {name: "Ida", r34: 300000, r64: 60000, eye: 30000, rating: "Cat 2"},
-                {name: "Fred", r34: 280000, r64: 55000, eye: 25000, rating: "Cat 3"}
-            ],
-            2010: [
-                {name: "Igor", r34: 550000, r64: 110000, eye: 50000, rating: "Cat 4"},
-                {name: "Earl", r34: 400000, r64: 90000, eye: 40000, rating: "Cat 4"},
-                {name: "Alex", r34: 320000, r64: 70000, eye: 35000, rating: "Cat 2"}
-            ],
-            2011: [
-                {name: "Irene", r34: 450000, r64: 90000, eye: 45000, rating: "Cat 3"},
-                {name: "Katia", r34: 400000, r64: 85000, eye: 40000, rating: "Cat 4"},
-                {name: "Ophelia", r34: 300000, r64: 60000, eye: 30000, rating: "Cat 4"}
-            ],
-            2012: [
-                // Sandy: The monster. TS winds ~500 miles (800km) radius! Hurricane winds ~175mi.
-                {name: "Sandy", r34: 800000, r64: 280000, eye: 100000, rating: "Cat 3"},
-                {name: "Isaac", r34: 350000, r64: 65000, eye: 35000, rating: "Cat 1"},
-                {name: "Michael", r34: 300000, r64: 60000, eye: 30000, rating: "Cat 3"}
-            ],
-            2013: [
-                {name: "Ingrid", r34: 250000, r64: 50000, eye: 25000, rating: "Cat 1"},
-                {name: "Humberto", r34: 220000, r64: 45000, eye: 20000, rating: "Cat 1"},
-                {name: "Karen", r34: 180000, r64: 0, eye: 0, rating: "TS"}
-            ],
-            2014: [
-                {name: "Gonzalo", r34: 350000, r64: 75000, eye: 25000, rating: "Cat 4"},
-                {name: "Arthur", r34: 280000, r64: 55000, eye: 30000, rating: "Cat 2"},
-                {name: "Bertha", r34: 250000, r64: 45000, eye: 25000, rating: "Cat 1"}
-            ],
-            2015: [
-                {name: "Joaquin", r34: 380000, r64: 80000, eye: 40000, rating: "Cat 4"},
-                {name: "Patricia", r34: 300000, r64: 55000, eye: 12000, rating: "Cat 5"}, // Pacific but famous
-                {name: "Fred", r34: 200000, r64: 40000, eye: 20000, rating: "Cat 1"}
-            ],
-            2016: [
-                {name: "Matthew", r34: 350000, r64: 75000, eye: 30000, rating: "Cat 5"},
-                {name: "Hermine", r34: 280000, r64: 50000, eye: 30000, rating: "Cat 1"},
-                {name: "Nicole", r34: 400000, r64: 90000, eye: 50000, rating: "Cat 4"}
-            ],
-            2017: [
-                // Irma: Large wind field
-                {name: "Irma", r34: 450000, r64: 100000, eye: 45000, rating: "Cat 5"},
-                {name: "Maria", r34: 350000, r64: 80000, eye: 25000, rating: "Cat 5"}, // Compact eye
-                {name: "Harvey", r34: 300000, r64: 65000, eye: 35000, rating: "Cat 4"}
-            ],
-            2018: [
-                {name: "Michael", r34: 320000, r64: 75000, eye: 30000, rating: "Cat 5"},
-                {name: "Florence", r34: 500000, r64: 100000, eye: 50000, rating: "Cat 4"},
-                {name: "Leslie", r34: 400000, r64: 80000, eye: 40000, rating: "Cat 1"}
-            ],
-            2019: [
-                {name: "Dorian", r34: 300000, r64: 70000, eye: 25000, rating: "Cat 5"}, // Compact but intense
-                {name: "Lorenzo", r34: 600000, r64: 130000, eye: 60000, rating: "Cat 5"}, // Huge
-                {name: "Humberto", r34: 450000, r64: 90000, eye: 50000, rating: "Cat 3"}
-            ],
-            2020: [
-                {name: "Laura", r34: 350000, r64: 75000, eye: 35000, rating: "Cat 4"},
-                {name: "Sally", r34: 280000, r64: 50000, eye: 30000, rating: "Cat 2"},
-                {name: "Zeta", r34: 300000, r64: 65000, eye: 35000, rating: "Cat 3"}
-            ],
-            2021: [
-                {name: "Ida", r34: 320000, r64: 70000, eye: 30000, rating: "Cat 4"},
-                {name: "Sam", r34: 350000, r64: 80000, eye: 35000, rating: "Cat 4"},
-                {name: "Larry", r34: 550000, r64: 110000, eye: 60000, rating: "Cat 3"}
-            ],
-            2022: [
-                // Ian: Large wind field at landfall
-                {name: "Ian", r34: 480000, r64: 105000, eye: 55000, rating: "Cat 5"},
-                {name: "Nicole", r34: 550000, r64: 90000, eye: 60000, rating: "Cat 1"}, // Very large
-                {name: "Fiona", r34: 400000, r64: 85000, eye: 40000, rating: "Cat 4"}
-            ],
-            2023: [
-                {name: "Idalia", r34: 300000, r64: 60000, eye: 30000, rating: "Cat 4"},
-                {name: "Lee", r34: 550000, r64: 115000, eye: 50000, rating: "Cat 5"},
-                {name: "Franklin", r34: 380000, r64: 80000, eye: 35000, rating: "Cat 4"}
-            ],
-            2024: [
-                // Helene: Massive. R34 > 400 miles. R64 ~60-80 miles.
-                {name: "Helene", r34: 650000, r64: 110000, eye: 60000, rating: "Cat 4"}, 
-                {name: "Milton", r34: 280000, r64: 65000, eye: 18000, rating: "Cat 5"}, // Compact
-                {name: "Beryl", r34: 300000, r64: 70000, eye: 25000, rating: "Cat 5"}
-            ],
-            2025: [
-                {name: "Future Storm Alpha", r34: 400000, r64: 80000, eye: 40000, rating: "Pred"}, 
-                {name: "Future Storm Beta", r34: 300000, r64: 60000, eye: 30000, rating: "Pred"}, 
-                {name: "Future Storm Gamma", r34: 500000, r64: 100000, eye: 50000, rating: "Pred"}
-            ]
-        };
-
-        // --- 3. STATE & CONTROLS ---
-        let currentMode = 'tornado'; // 'tornado' or 'hurricane'
-        let activeStormLayer = null;
-        
-        const yearSelect = document.getElementById('year-select');
-        const yearLabel = document.getElementById('year-label');
-        const stormList = document.getElementById('storm-list');
-        const instructions = document.getElementById('instructions');
-        
-        // --- 4. FUNCTIONS ---
+        let currentMode = 'tornado';
+        let isDrawing = false;
+        let drawingPoints = [];
+        let tempPolyline = null;
+        let createdStorms = [];
 
         function setMode(mode) {
             currentMode = mode;
-            
-            // Update UI State
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
             document.querySelector(`.mode-btn.${mode}`).classList.add('active');
+            document.getElementById('label-size').innerText = mode === 'tornado' ? 'Max Width (Miles)' : 'Max Radius (Miles)';
             
-            // Update List Theme
-            stormList.className = `list-container ${mode}-theme`;
-            
-            // Update Year Range
-            updateYearDropdown();
-            
-            // Trigger Year Change to refresh list
-            yearSelect.dispatchEvent(new Event('change'));
-            
-            // Update Instructions
-            if (mode === 'tornado') {
-                instructions.innerHTML = `<strong>Tornado Legend:</strong><br><span style="color:#ff4757; font-weight:bold;">Red</span> = Core, <span style="color:orange; font-weight:bold;">Orange</span> = High Winds, <span style="color:#f1c40f; font-weight:bold;">Yellow</span> = Max Width.<br><br>Drag the blue handle to move.`;
-            } else {
-                instructions.innerHTML = `<strong>Hurricane Legend:</strong><br><span style="color:#f1c40f; font-weight:bold;">Yellow</span> = Tropical Storm Force, <span style="color:#e74c3c; font-weight:bold;">Red</span> = Hurricane Force, <span style="color:black; font-weight:bold; background:white; padding:0 2px;">White</span> = Eye.<br><br>Drag the blue handle to move.`;
-            }
-            
-            clearMap();
+            const ratingSelect = document.getElementById('add-rating');
+            ratingSelect.innerHTML = '';
+            const ratings = mode === 'tornado' ? ['EF0', 'EF1', 'EF2', 'EF3', 'EF4', 'EF5'] : ['Cat 1', 'Cat 2', 'Cat 3', 'Cat 4', 'Cat 5'];
+            ratings.forEach(r => {
+                let opt = document.createElement('option');
+                opt.value = opt.text = r;
+                ratingSelect.appendChild(opt);
+            });
         }
 
-        function updateYearDropdown() {
-            yearSelect.innerHTML = '';
-            const startYear = currentMode === 'tornado' ? 1990 : 1985;
-            const endYear = 2025;
-            
-            for (let y = startYear; y <= endYear; y++) {
-                let option = document.createElement('option');
-                option.value = y;
-                option.text = y;
-                if (y === 2013 && currentMode === 'tornado') option.selected = true;
-                if (y === 2005 && currentMode === 'hurricane') option.selected = true; // Katrina default
-                yearSelect.appendChild(option);
-            }
+        // Logic to calculate dynamic weight based on zoom and miles
+        function getWeight(miles) {
+            const zoom = map.getZoom();
+            return miles * Math.pow(2, zoom - 6);
         }
 
-        function renderStorms(year) {
-            stormList.innerHTML = '';
-            const dataSet = currentMode === 'tornado' ? tornadoData : hurricaneData;
-            const storms = dataSet[year];
-
-            if (!storms) {
-                stormList.innerHTML = '<div style="padding:10px; color:#666;">No data available for this year.</div>';
-                return;
-            }
-
-            storms.forEach(storm => {
-                const btn = document.createElement('div');
-                btn.className = 'storm-btn';
-                btn.onclick = () => spawnStorm(storm);
-                
-                let widthDisplay;
-                if (currentMode === 'tornado') {
-                    widthDisplay = `${(storm.width / 1609.34).toFixed(2)} mi wide`;
-                } else {
-                    // Display diameter of Tropical Storm winds for context
-                    widthDisplay = `${((storm.r34 * 2) / 1609.34).toFixed(0)} mi wide`;
+        function updatePathWeights() {
+            createdStorms.forEach(s => {
+                if (s.pathLayers) {
+                    s.pathLayers.forEach(l => {
+                        l.setStyle({ weight: getWeight(l.options.mileWidth) });
+                    });
                 }
-
-                btn.innerHTML = `
-                    <div class="storm-info">
-                        <span class="storm-name">${storm.name}</span>
-                        <span class="rating-badge">${storm.rating}</span>
-                    </div>
-                    <span class="width-badge">${widthDisplay}</span>
-                `;
-                stormList.appendChild(btn);
             });
         }
 
-        yearSelect.addEventListener('change', (e) => {
-            renderStorms(e.target.value);
-        });
+        map.on('zoomend', updatePathWeights);
 
-        // --- MAP LOGIC ---
-
-        function spawnStorm(stormData) {
-            clearMap();
+        function startDrawingPath() {
+            isDrawing = true;
+            drawingPoints = [];
+            document.getElementById('draw-info').style.display = 'block';
+            document.getElementById('draw-path-btn').disabled = true;
+            if(tempPolyline) map.removeLayer(tempPolyline);
+            tempPolyline = L.polyline([], {color: '#3498db', dashArray: '5, 10', weight: 3}).addTo(map);
             
-            const center = map.getCenter();
-            map.panTo(center);
-
-            // Handle Marker
-            const handleIcon = L.divIcon({
-                className: 'custom-div-icon',
-                html: "<div style='background-color: #2196f3; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px black;'></div>",
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
+            map.on('click', (e) => {
+                if(!isDrawing) return;
+                drawingPoints.push([e.latlng.lat, e.latlng.lng]);
+                tempPolyline.setLatLngs(drawingPoints);
             });
 
-            const marker = L.marker(center, {
-                draggable: true,
-                icon: handleIcon
-            }).addTo(map);
+            map.on('dblclick', () => {
+                if(!isDrawing || drawingPoints.length < 2) return;
+                finishDrawing();
+            });
+        }
 
-            // --- VISUALIZATION LAYERS ---
-            let outerCircle, midCircle, innerCircle;
+        function finishDrawing() {
+            isDrawing = false;
+            document.getElementById('draw-info').style.display = 'none';
+            document.getElementById('draw-path-btn').disabled = false;
+            if(tempPolyline) map.removeLayer(tempPolyline);
+            map.off('click');
+            map.off('dblclick');
+            saveStorm();
+        }
 
-            if (currentMode === 'tornado') {
-                const maxRadius = stormData.width / 2;
-                
-                // Tornado Colors: Yellow (Outer), Orange (Mid), Red (Inner)
-                outerCircle = L.circle(center, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.2, weight: 2, radius: maxRadius }).addTo(map);
-                midCircle = L.circle(center, { color: 'orange', fillColor: 'orange', fillOpacity: 0.4, weight: 0, radius: maxRadius * 0.6 }).addTo(map);
-                innerCircle = L.circle(center, { color: '#ff4757', fillColor: '#ff4757', fillOpacity: 0.6, weight: 0, radius: maxRadius * 0.25 }).addTo(map);
-            } else {
-                // Hurricane Colors: 
-                // Outer (TS Force) = Yellow
-                // Mid (Hurricane Force) = Red
-                // Inner (Eye) = White
-                
-                // Note: stormData.r34 is RADIUS. Leaflet takes RADIUS. Perfect.
-                
-                // Outer Bands / TS Winds (Yellow)
-                outerCircle = L.circle(center, { 
-                    color: '#f1c40f', 
-                    fillColor: '#f1c40f', 
-                    fillOpacity: 0.2, // Light yellow
-                    weight: 1, 
-                    radius: stormData.r34 
-                }).addTo(map);
+        function saveStorm() {
+            const name = document.getElementById('add-name').value || (currentMode === 'tornado' ? "New Tornado" : "New Hurricane");
+            const size = parseFloat(document.getElementById('add-size').value) || 1.0;
+            const rating = document.getElementById('add-rating').value;
+            const speed = parseInt(document.getElementById('add-speed').value) || 45;
+            const id = Date.now();
 
-                // Hurricane Force Winds (Red)
-                midCircle = L.circle(center, { 
-                    color: '#e74c3c', 
-                    fillColor: '#e74c3c', 
-                    fillOpacity: 0.5, 
-                    weight: 0, 
-                    radius: stormData.r64 
-                }).addTo(map);
-
-                // Eye (White) - stormData.eye is DIAMETER, so radius is / 2
-                innerCircle = L.circle(center, { 
-                    color: '#fff', 
-                    fillColor: '#fff', 
-                    fillOpacity: 0.8, 
-                    weight: 0, 
-                    radius: stormData.eye / 2 
-                }).addTo(map);
-            }
-
-            // Bind tooltip
-            let tooltipText;
-            if (currentMode === 'tornado') {
-                 tooltipText = `<b>${stormData.name}</b><br>Width: ${(stormData.width / 1609.34).toFixed(2)} miles`;
-            } else {
-                 tooltipText = `<b>${stormData.name}</b><br>TS Winds: ${((stormData.r34 * 2) / 1609.34).toFixed(0)} mi<br>Hurricane Winds: ${((stormData.r64 * 2) / 1609.34).toFixed(0)} mi<br>Eye: ${(stormData.eye / 1609.34).toFixed(1)} mi`;
-            }
-            
-            marker.bindTooltip(tooltipText, { permanent: false, direction: 'top' });
-
-            activeStormLayer = {
-                marker,
-                outer: outerCircle, mid: midCircle, inner: innerCircle,
-                stormData: stormData
+            const storm = {
+                id, name, size, rating, speed, 
+                mode: currentMode,
+                path: [...drawingPoints],
+                layers: [],
+                pathLayers: [],
+                marker: null,
+                animInterval: null
             };
 
-            // Drag Handler - Moves circles with the marker
-            marker.on('drag', function(e) {
-                const newPos = e.target.getLatLng();
-                activeStormLayer.outer.setLatLng(newPos);
-                activeStormLayer.mid.setLatLng(newPos);
-                activeStormLayer.inner.setLatLng(newPos);
-            });
+            renderStormOnMap(storm);
+            createdStorms.push(storm);
+            updateList();
+            document.getElementById('add-name').value = '';
         }
 
-        function clearMap() {
-            if (activeStormLayer) {
-                map.removeLayer(activeStormLayer.marker);
-                map.removeLayer(activeStormLayer.outer);
-                map.removeLayer(activeStormLayer.mid);
-                map.removeLayer(activeStormLayer.inner);
-                activeStormLayer = null;
+        function renderStormOnMap(storm) {
+            const startPos = storm.path[0];
+            const baseSize = storm.size;
+
+            // Render path in segments so each piece can "shrink" based on its position along the path
+            for (let i = 0; i < storm.path.length - 1; i++) {
+                const progress = i / (storm.path.length - 1);
+                // The "Taper" effect: sin wave makes start/end thin and middle thick
+                const taper = Math.sin(progress * Math.PI);
+                const currentWidth = baseSize * Math.max(0.1, taper);
+                
+                const segment = [storm.path[i], storm.path[i+1]];
+
+                // 1. Outer Path (Yellow)
+                const outer = L.polyline(segment, {
+                    color: '#f1c40f',
+                    opacity: 0.1,
+                    lineCap: 'round',
+                    mileWidth: currentWidth,
+                    weight: getWeight(currentWidth)
+                }).addTo(map);
+                storm.pathLayers.push(outer);
+
+                // 2. Middle Path (Red)
+                const middle = L.polyline(segment, {
+                    color: '#e74c3c',
+                    opacity: 0.2,
+                    lineCap: 'round',
+                    mileWidth: currentWidth * 0.4,
+                    weight: getWeight(currentWidth * 0.4)
+                }).addTo(map);
+                storm.pathLayers.push(middle);
+
+                // 3. Core Path (Orange-Brown)
+                const core = L.polyline(segment, {
+                    color: '#5d4037',
+                    opacity: 0.3,
+                    lineCap: 'round',
+                    mileWidth: currentWidth * 0.15,
+                    weight: getWeight(currentWidth * 0.15)
+                }).addTo(map);
+                storm.pathLayers.push(core);
+            }
+
+            // Storm Head Rendering
+            const radiusMeters = (storm.mode === 'tornado' ? baseSize / 2 : storm.size) * MI_TO_M;
+            
+            if (storm.mode === 'tornado') {
+                storm.layers.push(L.circle(startPos, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.15, weight: 1, radius: radiusMeters }).addTo(map));
+                storm.layers.push(L.circle(startPos, { color: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.4, weight: 0, radius: radiusMeters * 0.4 }).addTo(map));
+                storm.layers.push(L.circle(startPos, { color: '#5d4037', fillColor: '#5d4037', fillOpacity: 0.8, weight: 0, radius: radiusMeters * 0.15 }).addTo(map));
+            } else {
+                storm.layers.push(L.circle(startPos, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.1, weight: 1, radius: radiusMeters }).addTo(map));
+                storm.layers.push(L.circle(startPos, { color: '#e67e22', fillColor: '#e67e22', fillOpacity: 0.3, weight: 0, radius: radiusMeters * 0.4 }).addTo(map));
+                storm.layers.push(L.circle(startPos, { color: '#fff', fillColor: '#fff', fillOpacity: 0.6, weight: 1, radius: radiusMeters * 0.1 }).addTo(map));
+            }
+
+            storm.marker = L.marker(startPos, {
+                icon: L.divIcon({
+                    className: 'h', 
+                    html: `<div style="background:#2c3e50;width:8px;height:8px;border-radius:50%;border:2px solid white"></div>`,
+                    iconSize:[10,10], iconAnchor:[5,5]
+                })
+            }).addTo(map).bindTooltip(storm.name);
+        }
+
+        function playStorm(id) {
+            const s = createdStorms.find(x => x.id === id);
+            if (!s || s.animInterval) return;
+
+            const path = s.path;
+            const baseRad = (s.mode === 'tornado' ? s.size / 2 : s.size) * MI_TO_M;
+            const targetSpeed = s.speed;
+            
+            let step = 0;
+            const totalSteps = path.length * 40; 
+
+            s.animInterval = setInterval(() => {
+                if (step >= totalSteps) {
+                    clearInterval(s.animInterval);
+                    s.animInterval = null;
+                    return;
+                }
+
+                const progress = step / totalSteps;
+                let speedModifier = 1.0;
+                const margin = 0.2; 
+                
+                if (progress < margin) {
+                    speedModifier = 1 - (5 / targetSpeed) * (1 - (progress / margin));
+                } else if (progress > (1 - margin)) {
+                    speedModifier = 1 - (5 / targetSpeed) * ((progress - (1 - margin)) / margin);
+                }
+
+                const taper = Math.sin(progress * Math.PI);
+                const idx = Math.floor(progress * (path.length - 1));
+                const segmentProg = (progress * (path.length - 1)) % 1;
+                
+                const p1 = path[idx];
+                const p2 = path[idx + 1] || p1;
+                const lat = p1[0] + (p2[0]-p1[0]) * segmentProg;
+                const lng = p1[1] + (p2[1]-p1[1]) * segmentProg;
+                const pos = [lat, lng];
+
+                s.marker.setLatLng(pos);
+                s.layers.forEach((l, i) => {
+                    l.setLatLng(pos);
+                    let ratio = 1;
+                    if (s.mode === 'tornado') ratio = (i === 0 ? 1 : (i === 1 ? 0.4 : 0.15));
+                    else ratio = (i === 0 ? 1 : (i === 1 ? 0.4 : 0.1));
+                    l.setRadius(baseRad * ratio * Math.max(0.1, taper));
+                });
+
+                step += (targetSpeed / 45) * speedModifier;
+            }, 30);
+        }
+
+        function deleteStorm(id) {
+            const idx = createdStorms.findIndex(x => x.id === id);
+            if (idx > -1) {
+                const s = createdStorms[idx];
+                if(s.animInterval) clearInterval(s.animInterval);
+                map.removeLayer(s.marker);
+                s.layers.forEach(l => map.removeLayer(l));
+                s.pathLayers.forEach(l => map.removeLayer(l));
+                createdStorms.splice(idx, 1);
+                updateList();
             }
         }
 
-        // Initialize
-        setMode('tornado');
+        function updateList() {
+            const container = document.getElementById('storm-list');
+            container.innerHTML = '';
+            document.getElementById('active-count').innerText = `${createdStorms.length} storms created`;
+            
+            createdStorms.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'storm-card';
+                card.innerHTML = `
+                    <div>
+                        <b>${s.name}</b>
+                        <small>${s.rating} | ${s.size}mi | ${s.speed}mph</small>
+                    </div>
+                    <div style="display:flex">
+                        <button class="icon-btn btn-play" onclick="playStorm(${s.id})">▶</button>
+                        <button class="icon-btn btn-del" onclick="deleteStorm(${s.id})">&times;</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
 
+        function clearAll() {
+            [...createdStorms].forEach(s => deleteStorm(s.id));
+        }
+
+        setMode('tornado');
     </script>
 </body>
 </html>
