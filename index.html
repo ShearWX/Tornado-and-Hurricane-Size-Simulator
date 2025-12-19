@@ -3,479 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Storm Path Maker</title>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-        }
-
-        #map {
-            height: 100vh;
-            width: 100%;
-            z-index: 1;
-        }
-
-        /* --- DASHBOARD STYLES --- */
-        #dashboard {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 340px;
-            background: rgba(255, 255, 255, 0.98);
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            z-index: 1000;
-            max-height: 90vh;
-            overflow-y: auto;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        h2 {
-            margin: 0 0 15px 0;
-            color: #2c3e50;
-            font-size: 1.4rem;
-            text-align: center;
-        }
-
-        .mode-switch-container {
-            display: flex;
-            background: #f1f2f6;
-            padding: 4px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            background: transparent;
-            color: #7f8c8d;
-        }
-
-        .mode-btn.active {
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .mode-btn.tornado.active { color: #e74c3c; }
-
-        .adder-form {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #34495e;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #dcdde1;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            box-sizing: border-box;
-        }
-
-        .action-btn {
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .action-btn:active { transform: scale(0.98); }
-
-        .btn-draw { background: #3498db; color: white; }
-        .btn-clear { background: #95a5a6; color: white; margin-top: 20px; }
-
-        .drawing-indicator {
-            background: #fff3cd;
-            color: #856404;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            border: 1px solid #ffeeba;
-            display: none;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        .storm-list {
-            margin-top: 20px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-
-        .storm-card {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .storm-card b { display: block; color: #2c3e50; }
-        .storm-card small { color: #7f8c8d; }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 5px;
-        }
-
-        .btn-play { background: #2ecc71; color: white; }
-        .btn-del { background: #e74c3c; color: white; }
-
-        #active-count {
-            text-align: center;
-            font-size: 0.8rem;
-            color: #95a5a6;
-            margin-bottom: 10px;
-        }
-    </style>
+    <title>Tornado Track Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="container">
+        <h1>Tornado Track Generator</h1>
+        <div id="simulation-container">
+            <div id="canvas-container"></div>
+            <div id="info-panel">
+                <h2>Tornado Status</h2>
+                <p>Time: <span id="clock-time">--:--</span></p>
+                
+                <div id="tornado-1-stats">
+                    <h3>Tornado 1</h3>
+                    <p>Wind Speed: <span id="wind-speed-1">--</span> mph</p>
+                    <p>Category: <span id="ef-scale-1">--</span></p>
+                    <p>Max Wind: <span id="max-wind-speed-1">--</span> mph</p>
+                    <p>Max Width: <span id="max-width-1">--</span> mi</p>
+                </div>
 
-    <div id="dashboard">
-        <h2>Storm Path Maker</h2>
-        
-        <div class="mode-switch-container">
-            <button class="mode-btn tornado active" onclick="setMode('tornado')">Tornado</button>
-        </div>
-
-        <div class="adder-form">
-            <div class="control-group">
-                <label>Storm Name</label>
-                <input type="text" id="add-name" placeholder="e.g. Supercell Alpha">
-            </div>
-            <div class="control-group">
-                <label id="label-size">Max Width (Miles)</label>
-                <input type="number" step="0.1" id="add-size" value="1.0">
-            </div>
-            <div class="control-group">
-                <label>Intensity Rating</label>
-                <select id="add-rating"></select>
-            </div>
-            <div class="control-group">
-                <label>Custom Speed (mph)</label>
-                <input type="number" id="add-speed" value="45" min="5" max="200">
-                <small style="color: #7f8c8d; font-size: 0.7rem;">Slowing down 5mph at start/end.</small>
-            </div>
-            
-            <button class="action-btn btn-draw" id="draw-path-btn" onclick="startDrawingPath()">Start Drawing Path</button>
-            
-            <div id="draw-info" class="drawing-indicator">
-                <b>DRAWING MODE</b><br>
-                1. Click map for points<br>
-                2. Double-click to save
+                <div id="tornado-2-stats" style="display: none;">
+                     <hr>
+                    <h3>Tornado 2</h3>
+                    <p>Wind Speed: <span id="wind-speed-2">--</span> mph</p>
+                    <p>Category: <span id="ef-scale-2">--</span></p>
+                    <p>Max Wind: <span id="max-wind-speed-2">--</span> mph</p>
+                    <p>Max Width: <span id="max-width-2">--</span> mi</p>
+                </div>
+                
+                <hr>
+                <p>Total Casualties: <span id="total-casualties">0</span></p>
+                <p>Cities in path:</p>
+                <ul id="cities-hit">
+                    <li>None</li>
+                </ul>
             </div>
         </div>
+        <div id="controls">
+            <button id="new-sim-btn">New Simulation</button>
+            <button id="new-map-btn">New Map</button>
+            <div id="slider-control">
+                <label for="path-wobble">Path Wobble:</label>
+                <input type="range" id="path-wobble" min="0.1" max="2.5" step="0.1" value="0.7">
+            </div>
 
-        <div id="active-count">0 storms created</div>
-        <div id="storm-list" class="storm-list"></div>
+            <!-- Manual tornado creation UI -->
+            <div id="manual-controls" style="display:flex;flex-direction:column;gap:8px;margin-left:12px;align-items:flex-start;">
+                <label style="font-size:0.9em;">
+                    <input type="checkbox" id="manual-mode"> Manual Tornado Mode (click canvas to place)
+                </label>
 
-        <button class="action-btn btn-clear" onclick="clearAll()">Reset Map</button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label for="custom-wind" style="font-size:0.9em;">Wind (mph):</label>
+                    <input id="custom-wind" type="number" min="40" max="1000" value="120" style="width:90px;">
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label for="custom-width" style="font-size:0.9em;">Width (mi):</label>
+                    <input id="custom-width" type="number" min="0.1" max="2.7" value="0.8" step="0.1" style="width:90px;">
+                </div>
+
+                <div style="display:flex;gap:8px;">
+                    <button id="add-tornado-btn">Add Tornado (center)</button>
+                    <button id="clear-manual-btn">Clear Manual Tornadoes</button>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                    <label style="font-size:0.9em;">
+                        <input type="checkbox" id="path-edit-mode"> Edit Path Mode (click to add waypoints)
+                    </label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button id="clear-path-btn">Clear Path</button>
+                        <button id="finish-path-btn">Finish Path</button>
+                    </div>
+                    <small style="color:#666;">When Edit Path Mode is active, clicks add waypoints that tornadoes can follow.</small>
+                </div>
+
+                <hr style="width:100%;margin:8px 0;">
+
+                <!-- Map editor controls -->
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:0.9em;">
+                        <input type="checkbox" id="map-editor-mode"> Map Editor Mode (paint / add cities / draw roads)
+                    </label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <label style="font-size:0.9em;">Terrain:</label>
+                        <select id="terrain-type" style="width:120px;">
+                            <option value="lake">Lake (blue)</option>
+                            <option value="grass">Grass (green)</option>
+                            <option value="mountain">Mountain (grey)</option>
+                        </select>
+                        <button id="paint-terrain-btn">Paint</button>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button id="add-city-mode-btn">Add City Mode</button>
+                        <button id="draw-road-mode-btn">Draw Road Mode</button>
+                        <button id="clear-editor-btn">Clear Editor Overlay</button>
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                        <label for="city-name-input" style="font-size:0.9em;">City Name:</label>
+                        <input id="city-name-input" type="text" placeholder="Optional custom name" style="width:140px;">
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                        <label for="map-upload" style="font-size:0.9em;">Upload Map:</label>
+                        <input id="map-upload" type="file" accept="image/*">
+                    </div>
+
+                    <small style="color:#666;">Use Map Editor Mode + the above tools: click map to paint or add cities; draw roads by selecting two cities. Use City Name to give a custom name when adding a city; Upload Map will replace the procedural background.</small>
+                </div>
+
+                <hr style="width:100%;margin:8px 0;">
+
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label for="max-ef" style="font-size:0.9em;">Max EF Cap:</label>
+                    <select id="max-ef" style="width:150px;">
+                        <option value="6">EF6 (no cap)</option>
+                        <option value="5">EF5</option>
+                        <option value="4">EF4</option>
+                        <option value="3">EF3</option>
+                        <option value="2">EF2</option>
+                        <option value="1">EF1</option>
+                        <option value="0">EF0</option>
+                    </select>
+                    <small style="color:#666;">This limits the maximum EF rating tornadoes can reach when they spawn.</small>
+                </div>
+
+                <small style="color:#666;">Tip: enable Manual Tornado Mode and click the map to place tornadoes where you want.</small>
+            </div>
+        </div>
     </div>
-
-    <div id="map"></div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <script>
-        const MI_TO_M = 1609.34;
-        const map = L.map('map', { doubleClickZoom: false }).setView([38, -97], 5);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        let currentMode = 'tornado';
-        let isDrawing = false;
-        let drawingPoints = [];
-        let tempPolyline = null;
-        let createdStorms = [];
-
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.mode-btn.${mode}`).classList.add('active');
-            document.getElementById('label-size').innerText = mode === 'tornado' ? 'Max Width (Miles)' : 'Max Radius (Miles)';
-            
-            const ratingSelect = document.getElementById('add-rating');
-            ratingSelect.innerHTML = '';
-            const ratings = mode === 'tornado' ? ['EF0', 'EF1', 'EF2', 'EF3', 'EF4', 'EF5'] : ['Cat 1', 'Cat 2', 'Cat 3', 'Cat 4', 'Cat 5'];
-            ratings.forEach(r => {
-                let opt = document.createElement('option');
-                opt.value = opt.text = r;
-                ratingSelect.appendChild(opt);
-            });
-        }
-
-        // Logic to calculate dynamic weight based on zoom and miles
-        function getWeight(miles) {
-            const zoom = map.getZoom();
-            return miles * Math.pow(2, zoom - 6);
-        }
-
-        function updatePathWeights() {
-            createdStorms.forEach(s => {
-                if (s.pathLayers) {
-                    s.pathLayers.forEach(l => {
-                        l.setStyle({ weight: getWeight(l.options.mileWidth) });
-                    });
-                }
-            });
-        }
-
-        map.on('zoomend', updatePathWeights);
-
-        function startDrawingPath() {
-            isDrawing = true;
-            drawingPoints = [];
-            document.getElementById('draw-info').style.display = 'block';
-            document.getElementById('draw-path-btn').disabled = true;
-            if(tempPolyline) map.removeLayer(tempPolyline);
-            tempPolyline = L.polyline([], {color: '#3498db', dashArray: '5, 10', weight: 3}).addTo(map);
-            
-            map.on('click', (e) => {
-                if(!isDrawing) return;
-                drawingPoints.push([e.latlng.lat, e.latlng.lng]);
-                tempPolyline.setLatLngs(drawingPoints);
-            });
-
-            map.on('dblclick', () => {
-                if(!isDrawing || drawingPoints.length < 2) return;
-                finishDrawing();
-            });
-        }
-
-        function finishDrawing() {
-            isDrawing = false;
-            document.getElementById('draw-info').style.display = 'none';
-            document.getElementById('draw-path-btn').disabled = false;
-            if(tempPolyline) map.removeLayer(tempPolyline);
-            map.off('click');
-            map.off('dblclick');
-            saveStorm();
-        }
-
-        function saveStorm() {
-            const name = document.getElementById('add-name').value || (currentMode === 'tornado' ? "New Tornado" : "New Hurricane");
-            const size = parseFloat(document.getElementById('add-size').value) || 1.0;
-            const rating = document.getElementById('add-rating').value;
-            const speed = parseInt(document.getElementById('add-speed').value) || 45;
-            const id = Date.now();
-
-            const storm = {
-                id, name, size, rating, speed, 
-                mode: currentMode,
-                path: [...drawingPoints],
-                layers: [],
-                pathLayers: [],
-                marker: null,
-                animInterval: null
-            };
-
-            renderStormOnMap(storm);
-            createdStorms.push(storm);
-            updateList();
-            document.getElementById('add-name').value = '';
-        }
-
-        function renderStormOnMap(storm) {
-            const startPos = storm.path[0];
-            const baseSize = storm.size;
-
-            // Render path in segments so each piece can "shrink" based on its position along the path
-            for (let i = 0; i < storm.path.length - 1; i++) {
-                const progress = i / (storm.path.length - 1);
-                // The "Taper" effect: sin wave makes start/end thin and middle thick
-                const taper = Math.sin(progress * Math.PI);
-                const currentWidth = baseSize * Math.max(0.1, taper);
-                
-                const segment = [storm.path[i], storm.path[i+1]];
-
-                // 1. Outer Path (Yellow)
-                const outer = L.polyline(segment, {
-                    color: '#f1c40f',
-                    opacity: 0.1,
-                    lineCap: 'round',
-                    mileWidth: currentWidth,
-                    weight: getWeight(currentWidth)
-                }).addTo(map);
-                storm.pathLayers.push(outer);
-
-                // 2. Middle Path (Red)
-                const middle = L.polyline(segment, {
-                    color: '#e74c3c',
-                    opacity: 0.2,
-                    lineCap: 'round',
-                    mileWidth: currentWidth * 0.4,
-                    weight: getWeight(currentWidth * 0.4)
-                }).addTo(map);
-                storm.pathLayers.push(middle);
-
-                // 3. Core Path (Orange-Brown)
-                const core = L.polyline(segment, {
-                    color: '#5d4037',
-                    opacity: 0.3,
-                    lineCap: 'round',
-                    mileWidth: currentWidth * 0.15,
-                    weight: getWeight(currentWidth * 0.15)
-                }).addTo(map);
-                storm.pathLayers.push(core);
-            }
-
-            // Storm Head Rendering
-            const radiusMeters = (storm.mode === 'tornado' ? baseSize / 2 : storm.size) * MI_TO_M;
-            
-            if (storm.mode === 'tornado') {
-                storm.layers.push(L.circle(startPos, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.15, weight: 1, radius: radiusMeters }).addTo(map));
-                storm.layers.push(L.circle(startPos, { color: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.4, weight: 0, radius: radiusMeters * 0.4 }).addTo(map));
-                storm.layers.push(L.circle(startPos, { color: '#5d4037', fillColor: '#5d4037', fillOpacity: 0.8, weight: 0, radius: radiusMeters * 0.15 }).addTo(map));
-            } else {
-                storm.layers.push(L.circle(startPos, { color: '#f1c40f', fillColor: '#f1c40f', fillOpacity: 0.1, weight: 1, radius: radiusMeters }).addTo(map));
-                storm.layers.push(L.circle(startPos, { color: '#e67e22', fillColor: '#e67e22', fillOpacity: 0.3, weight: 0, radius: radiusMeters * 0.4 }).addTo(map));
-                storm.layers.push(L.circle(startPos, { color: '#fff', fillColor: '#fff', fillOpacity: 0.6, weight: 1, radius: radiusMeters * 0.1 }).addTo(map));
-            }
-
-            storm.marker = L.marker(startPos, {
-                icon: L.divIcon({
-                    className: 'h', 
-                    html: `<div style="background:#2c3e50;width:8px;height:8px;border-radius:50%;border:2px solid white"></div>`,
-                    iconSize:[10,10], iconAnchor:[5,5]
-                })
-            }).addTo(map).bindTooltip(storm.name);
-        }
-
-        function playStorm(id) {
-            const s = createdStorms.find(x => x.id === id);
-            if (!s || s.animInterval) return;
-
-            const path = s.path;
-            const baseRad = (s.mode === 'tornado' ? s.size / 2 : s.size) * MI_TO_M;
-            const targetSpeed = s.speed;
-            
-            let step = 0;
-            const totalSteps = path.length * 40; 
-
-            s.animInterval = setInterval(() => {
-                if (step >= totalSteps) {
-                    clearInterval(s.animInterval);
-                    s.animInterval = null;
-                    return;
-                }
-
-                const progress = step / totalSteps;
-                let speedModifier = 1.0;
-                const margin = 0.2; 
-                
-                if (progress < margin) {
-                    speedModifier = 1 - (5 / targetSpeed) * (1 - (progress / margin));
-                } else if (progress > (1 - margin)) {
-                    speedModifier = 1 - (5 / targetSpeed) * ((progress - (1 - margin)) / margin);
-                }
-
-                const taper = Math.sin(progress * Math.PI);
-                const idx = Math.floor(progress * (path.length - 1));
-                const segmentProg = (progress * (path.length - 1)) % 1;
-                
-                const p1 = path[idx];
-                const p2 = path[idx + 1] || p1;
-                const lat = p1[0] + (p2[0]-p1[0]) * segmentProg;
-                const lng = p1[1] + (p2[1]-p1[1]) * segmentProg;
-                const pos = [lat, lng];
-
-                s.marker.setLatLng(pos);
-                s.layers.forEach((l, i) => {
-                    l.setLatLng(pos);
-                    let ratio = 1;
-                    if (s.mode === 'tornado') ratio = (i === 0 ? 1 : (i === 1 ? 0.4 : 0.15));
-                    else ratio = (i === 0 ? 1 : (i === 1 ? 0.4 : 0.1));
-                    l.setRadius(baseRad * ratio * Math.max(0.1, taper));
-                });
-
-                step += (targetSpeed / 45) * speedModifier;
-            }, 30);
-        }
-
-        function deleteStorm(id) {
-            const idx = createdStorms.findIndex(x => x.id === id);
-            if (idx > -1) {
-                const s = createdStorms[idx];
-                if(s.animInterval) clearInterval(s.animInterval);
-                map.removeLayer(s.marker);
-                s.layers.forEach(l => map.removeLayer(l));
-                s.pathLayers.forEach(l => map.removeLayer(l));
-                createdStorms.splice(idx, 1);
-                updateList();
-            }
-        }
-
-        function updateList() {
-            const container = document.getElementById('storm-list');
-            container.innerHTML = '';
-            document.getElementById('active-count').innerText = `${createdStorms.length} storms created`;
-            
-            createdStorms.forEach(s => {
-                const card = document.createElement('div');
-                card.className = 'storm-card';
-                card.innerHTML = `
-                    <div>
-                        <b>${s.name}</b>
-                        <small>${s.rating} | ${s.size}mi | ${s.speed}mph</small>
-                    </div>
-                    <div style="display:flex">
-                        <button class="icon-btn btn-play" onclick="playStorm(${s.id})">▶</button>
-                        <button class="icon-btn btn-del" onclick="deleteStorm(${s.id})">&times;</button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function clearAll() {
-            [...createdStorms].forEach(s => deleteStorm(s.id));
-        }
-
-        setMode('tornado');
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
